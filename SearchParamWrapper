@@ -1,0 +1,17 @@
+package com.fd.clientmgmt.dao.util;
+
+import java.util.ArrayList;
+
+public class SearchParamWrapper {
+
+	private ArrayList<SearchParam> searchParam;
+
+	public ArrayList<SearchParam> getSearchParam() {
+		return searchParam;
+	}
+
+	public void setSearchParam(ArrayList<SearchParam> searchParam) {
+		this.searchParam = searchParam;
+	}
+
+}
