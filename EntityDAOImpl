@@ -3,6 +3,8 @@ package com.fd.clientmgmt.dao;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -22,11 +24,22 @@ import javax.persistence.metamodel.SingularAttribute;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.Criteria;
+import org.hibernate.Session;
+import org.hibernate.criterion.Example;
 import org.springframework.stereotype.Repository;
 
 import com.fd.clientmgmt.dao.util.Expression;
 import com.fd.clientmgmt.dao.util.FilterNode;
 import com.fd.clientmgmt.dao.util.Operator;
+import com.fd.clientmgmt.entity.Address;
+import com.fd.clientmgmt.entity.Client;
+import com.fd.clientmgmt.entity.ClientAccountRelationship;
+import com.fd.clientmgmt.entity.ClientAddressRelationship;
+import com.fd.clientmgmt.entity.ClientClientRelationship;
+import com.fd.clientmgmt.entity.ClientDetail;
+import com.fd.clientmgmt.entity.ClientEmploymentRelationship;
+import com.fd.clientmgmt.entity.ClientIaRelationship;
 
 @Repository
 public class EntityDAOImpl implements EntityDAO {
@@ -58,16 +71,16 @@ public class EntityDAOImpl implements EntityDAO {
 			entityList = createQuery.getResultList();
 		} catch (EntityExistsException ee) {
 			logger.error("EntityExistsException while creating client" + ee);
-			throw new EntityExistsException("Exception while creating client");
+			throw new EntityExistsException(ee.getMessage());
 		} catch (IllegalArgumentException iae) {
 			logger.error("IllegalArgumentException while creating client" + iae);
-			throw new IllegalArgumentException("Exception while creating client");
+			throw new IllegalArgumentException(iae.getMessage());
 		} catch (TransactionRequiredException tre) {
 			logger.error("TransactionRequiredException while creating client" + tre);
-			throw new TransactionRequiredException("Exception while creating client");
+			throw new TransactionRequiredException(tre.getMessage());
 		} catch (Exception e) {
 			logger.error("TransactionRequiredException while creating client" + e.getMessage());
-			throw new Exception("Exception while creating client");
+			throw new Exception(e.getMessage());
 		}
 		return entityList;
 	}
@@ -93,6 +106,8 @@ public class EntityDAOImpl implements EntityDAO {
 							if (valueObject instanceof Long) {
 								equal = builder.equal(parent.get(propertyName), valueObject);
 							} else if (valueObject instanceof String) {
+								equal = builder.equal(parent.get(propertyName), valueObject);
+							} else if (valueObject instanceof Short) {
 								equal = builder.equal(parent.get(propertyName), valueObject);
 							} else if (valueObject instanceof Object) {
 								Field[] declaredFields = valueObject.getClass().getDeclaredFields();
@@ -120,6 +135,9 @@ public class EntityDAOImpl implements EntityDAO {
 				}
 			}
 			for (SetAttribute setAttribute : currentNode.getChildFields()) {
+				if(setAttribute == null){
+					continue;
+				}
 				if (child == null) {
 					child = parent.fetch(setAttribute);
 				} else if (parent == null) {
@@ -132,6 +150,9 @@ public class EntityDAOImpl implements EntityDAO {
 			}
 			
 			for (SingularAttribute singularAttribute : currentNode.getSiblingFields()) {
+				if(singularAttribute == null){
+					continue;
+				}
 				if (child == null) {
 					child = parent.fetch(singularAttribute);
 				} else if (parent == null) {
@@ -145,16 +166,16 @@ public class EntityDAOImpl implements EntityDAO {
 			
 		} catch (EntityExistsException ee) {
 			logger.error("EntityExistsException while entity filter");
-			throw new EntityExistsException("Exception while entity filter");
+			throw new EntityExistsException(ee.getMessage());
 		} catch (IllegalArgumentException iae) {
 			logger.error("IllegalArgumentException while entity filter" + iae);
-			throw new IllegalArgumentException("Exception while creating client");
+			throw new IllegalArgumentException(iae.getMessage());
 		} catch (TransactionRequiredException tre) {
 			logger.error("TransactionRequiredException while entity filter" + tre);
-			throw new TransactionRequiredException("Exception while creating client");
+			throw new TransactionRequiredException(tre.getMessage());
 		} catch (Exception e) {
 			logger.error("TransactionRequiredException while entity filter" + e.getMessage());
-			throw new Exception("Exception while entity filter");
+			throw new Exception(e.getMessage());
 		}
 	}
 
@@ -216,6 +237,76 @@ public class EntityDAOImpl implements EntityDAO {
 			throw new Exception("Exception while getting entity object");
 		}
 		return entityList;
+	}
+	
+	private Client getClientByIdTestData() throws Exception {
+
+		Address a1 = new Address();
+		a1.setCity("TestCity1");
+
+		Address a2 = new Address();
+		a2.setCity("TestCity2");
+
+		// addressDAO.addAddress(a1);
+
+		Client c = new Client();
+		c.setCompany("VPNThursday");
+		c.setFirstName("VpnTest12");
+		c.setSpnFirmId(101L);
+		c.setExternalClientId("1A");
+		c.setModifiedDate(new Date());
+		c.setCreatedDate(new Date());
+		c.setModifiedBy("VPN");
+
+		ClientDetail clientDetail = new ClientDetail();
+		clientDetail.setGender("M");
+		clientDetail.setClient(c);
+		c.setClientDetail(clientDetail);
+
+		ClientEmploymentRelationship clientEmploymentRelationship = new ClientEmploymentRelationship();
+		clientEmploymentRelationship.setEmployer("Test");
+		clientEmploymentRelationship.setClient(c);
+		clientEmploymentRelationship.setAddress(a1);
+		// clientEmploymentRelationship.setAddressId(a1.getAddressId());
+		c.setClientEmploymentRelationship(clientEmploymentRelationship);
+
+		c.setClientAccountRelationships(new HashSet<ClientAccountRelationship>());
+		ClientAccountRelationship accountRelationship = new ClientAccountRelationship();
+		accountRelationship.setAcctId(47054726L);
+		accountRelationship.setCreatedDate(new Date());
+		accountRelationship.setModifiedDate(new Date());
+		accountRelationship.setModifiedBy("VPN");
+		accountRelationship.setClient(c);
+		c.getClientAccountRelationships().add(accountRelationship);
+
+		c.setClientIaRelationships(new HashSet<ClientIaRelationship>());
+		ClientIaRelationship clientIaRelationship = new ClientIaRelationship();
+		clientIaRelationship.setIaId(71513L);
+		clientIaRelationship.setClient(c);
+		clientIaRelationship.setCreatedDate(new Date());
+		clientIaRelationship.setModifiedBy("VPN");
+		clientIaRelationship.setModifiedDate(new Date());
+		short flag = 1;
+		clientIaRelationship.setPrimaryFlag(new Short(flag));
+		c.getClientIaRelationships().add(clientIaRelationship);
+
+		c.setClientAddressRelationships(new HashSet<ClientAddressRelationship>());
+		ClientAddressRelationship clientAddressRelationship = new ClientAddressRelationship();
+		short addType = 1;
+		clientAddressRelationship.setAddressType(new Short(addType));
+		clientAddressRelationship.setClient(c);
+		clientAddressRelationship.setAddress(a2);
+		c.getClientAddressRelationships().add(clientAddressRelationship);
+
+		c.setclientClientRelationships(new HashSet<ClientClientRelationship>());
+		ClientClientRelationship clientClientRelationship = new ClientClientRelationship();
+		clientClientRelationship.setAcctId(47054726L);
+		clientClientRelationship.setClient(c);
+		clientClientRelationship.setRelatedClient(c);
+		clientClientRelationship.setModifiedDate(new Date());
+		c.getclientClientRelationships().add(clientClientRelationship);
+
+		return c;
 	}
 
 }
