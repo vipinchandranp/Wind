@@ -24,9 +24,6 @@ import javax.persistence.metamodel.SingularAttribute;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.Criteria;
-import org.hibernate.Session;
-import org.hibernate.criterion.Example;
 import org.springframework.stereotype.Repository;
 
 import com.fd.clientmgmt.dao.util.Expression;
@@ -37,7 +34,7 @@ import com.fd.clientmgmt.entity.Client;
 import com.fd.clientmgmt.entity.ClientAccountRelationship;
 import com.fd.clientmgmt.entity.ClientAddressRelationship;
 import com.fd.clientmgmt.entity.ClientClientRelationship;
-import com.fd.clientmgmt.entity.ClientDetail;
+import com.fd.clientmgmt.entity.ClientDetail; 
 import com.fd.clientmgmt.entity.ClientEmploymentRelationship;
 import com.fd.clientmgmt.entity.ClientIaRelationship;
 
@@ -66,7 +63,7 @@ public class EntityDAOImpl implements EntityDAO {
 				predicateList.toArray(predArray);
 				criteriaQuery.where(predArray);
 			}
-			
+
 			TypedQuery<Class<?>> createQuery = em.createQuery(criteriaQuery);
 			entityList = createQuery.getResultList();
 		} catch (EntityExistsException ee) {
@@ -87,7 +84,7 @@ public class EntityDAOImpl implements EntityDAO {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void filter(CriteriaQuery criteriaQuery, CriteriaBuilder builder, Root parent, Fetch child,
-		FilterNode parentNode, FilterNode childNode, List predicateList) throws Exception {
+			FilterNode parentNode, FilterNode childNode, List predicateList) throws Exception {
 		try {
 			FilterNode currentNode = null;
 			if (childNode == null && parentNode != null) {
@@ -101,56 +98,56 @@ public class EntityDAOImpl implements EntityDAO {
 				Object valueObject = expression.getValueObject();
 				Predicate equal = null;
 				switch (operator) {
-					case EQUAL:
-						if (child == null) {
-							if (valueObject instanceof Long) {
-								equal = builder.equal(parent.get(propertyName), valueObject);
-							} else if (valueObject instanceof String) {
-								equal = builder.equal(parent.get(propertyName), valueObject);
-							} else if (valueObject instanceof Short) {
-								equal = builder.equal(parent.get(propertyName), valueObject);
-							} else if (valueObject instanceof Object) {
-								Field[] declaredFields = valueObject.getClass().getDeclaredFields();
-								for (Field f : declaredFields) {
-									f.setAccessible(true);
-									Object value = f.get(valueObject);
-									if (value != null) {
-										equal = builder.equal(parent.get(propertyName).get(f.getName()), value);
-									}
+				case EQUAL:
+					if (child == null) {
+						if (valueObject instanceof Long) {
+							equal = builder.equal(parent.get(propertyName), valueObject);
+						} else if (valueObject instanceof String) {
+							equal = builder.equal(parent.get(propertyName), valueObject);
+						} else if (valueObject instanceof Short) {
+							equal = builder.equal(parent.get(propertyName), valueObject);
+						} else if (valueObject instanceof Object) {
+							Field[] declaredFields = valueObject.getClass().getDeclaredFields();
+							for (Field f : declaredFields) {
+								f.setAccessible(true);
+								Object value = f.get(valueObject);
+								if (value != null) {
+									equal = builder.equal(parent.get(propertyName).get(f.getName()), value);
 								}
 							}
-						} else {
-							equal = builder.equal(((Join<?, ?>) child).get(propertyName), valueObject);
 						}
-						predicateList.add(equal);
-						break;
-					case NOT_EQUAL:
-					case CONTAINS:
-					case NOT_CONTAINS:
-					case IN:
-					case NOT_IN:
-					case BEGINS_WITH:
-					case ENDS_WITH:
-					default:
+					} else {
+						equal = builder.equal(((Join<?, ?>) child).get(propertyName), valueObject);
+					}
+					predicateList.add(equal);
+					break;
+				case NOT_EQUAL:
+				case CONTAINS:
+				case NOT_CONTAINS:
+				case IN:
+				case NOT_IN:
+				case BEGINS_WITH:
+				case ENDS_WITH:
+				default:
 				}
 			}
 			for (SetAttribute setAttribute : currentNode.getChildFields()) {
-				if(setAttribute == null){
+				if (setAttribute == null) {
 					continue;
 				}
 				if (child == null) {
 					child = parent.fetch(setAttribute);
 				} else if (parent == null) {
 					child = child.fetch(setAttribute);
-				}else if (child != null && parent != null) {
+				} else if (child != null && parent != null) {
 					child = parent.fetch(setAttribute);
 				}
 				FilterNode node = currentNode.getChildNodeMap().get(setAttribute);
 				filter(criteriaQuery, builder, null, child, currentNode, node, predicateList);
 			}
-			
+
 			for (SingularAttribute singularAttribute : currentNode.getSiblingFields()) {
-				if(singularAttribute == null){
+				if (singularAttribute == null) {
 					continue;
 				}
 				if (child == null) {
@@ -163,7 +160,7 @@ public class EntityDAOImpl implements EntityDAO {
 				FilterNode node = currentNode.getChildNodeMap().get(singularAttribute);
 				filter(criteriaQuery, builder, null, child, currentNode, node, predicateList);
 			}
-			
+
 		} catch (EntityExistsException ee) {
 			logger.error("EntityExistsException while entity filter");
 			throw new EntityExistsException(ee.getMessage());
@@ -180,47 +177,47 @@ public class EntityDAOImpl implements EntityDAO {
 	}
 
 	@SuppressWarnings("rawtypes")
-	public FilterNode getFilterNodeFromEntity(Object entityObject,FilterNode filterNode) throws Exception {
-		try{
-			if(filterNode == null){
-				filterNode = new FilterNode(entityObject.getClass(),em);
+	public FilterNode getFilterNodeFromEntity(Object entityObject,Object parentEntityObject, FilterNode filterNode) throws Exception {
+		try {
+			if (filterNode == null) {
+				filterNode = new FilterNode(entityObject.getClass(), em);
 			}
-			String metamodelClassName = entityObject.getClass().getCanonicalName()+"_";
+			String metamodelClassName = entityObject.getClass().getCanonicalName() + "_";
 			Class metamodelClass = Class.forName(metamodelClassName);
 			Field[] declaredFields = entityObject.getClass().getDeclaredFields();
 			for (Field f : declaredFields) {
 				f.setAccessible(true);
 				Object value = f.get(entityObject);
-				if(value == null || f.getType().getName().equalsIgnoreCase("long")){
+				if (value == null ||(value !=null && value.equals(parentEntityObject))|| f.getType().getName().equalsIgnoreCase("long")) {
 					continue;
-				}else if(f.getType().getName().equalsIgnoreCase("java.lang.String")||
-					f.getType().getName().equalsIgnoreCase("java.lang.Long")||
-					f.getType().getName().equalsIgnoreCase("java.util.Date")||
-					f.getType().getName().equalsIgnoreCase("java.lang.Double")||
-					f.getType().getName().equalsIgnoreCase("java.lang.Short")||
-					f.getType().getName().equalsIgnoreCase("java.lang.Integer")) {
+				}else if (f.getType().getName().equalsIgnoreCase("java.lang.String")
+						|| f.getType().getName().equalsIgnoreCase("java.lang.Long")
+						|| f.getType().getName().equalsIgnoreCase("java.util.Date")
+						|| f.getType().getName().equalsIgnoreCase("java.lang.Double")
+						|| f.getType().getName().equalsIgnoreCase("java.lang.Short")
+						|| f.getType().getName().equalsIgnoreCase("java.lang.Integer")) {
 					filterNode.addCondition(f.getName(), Operator.EQUAL, value);
-				}else if(value instanceof Collection<?>){
+				} else if (value instanceof Collection<?>) {
 					Field field = metamodelClass.getField(f.getName());
 					Collection collectionObject = (Collection) f.get(entityObject);
 					Iterator iterator = collectionObject.iterator();
-					while(iterator.hasNext()){
+					while (iterator.hasNext()) {
 						Object obj = iterator.next();
-						if(obj != null) {
+						if (obj != null) {
 							FilterNode childNode = new FilterNode(obj.getClass(), em);
-							filterNode.addChild((SetAttribute)field.get(null), childNode);
-							getFilterNodeFromEntity(obj,childNode);
+							filterNode.addChild((SetAttribute) field.get(null), childNode);
+							getFilterNodeFromEntity(obj,entityObject, childNode);
 						}
 					}
-						
-				}else if(value instanceof Object){
+
+				} else if (value instanceof Object) {
 					Field field = metamodelClass.getField(f.getName());
 					FilterNode siblingNode = new FilterNode(value.getClass(), em);
-					filterNode.addSibling((SingularAttribute)field.get(null), siblingNode);
-					getFilterNodeFromEntity(value,siblingNode);
+					filterNode.addSibling((SingularAttribute) field.get(null), siblingNode);
+					getFilterNodeFromEntity(value,entityObject, siblingNode);
 				}
 			}
-		}catch(Exception e){
+		} catch (Exception e) {
 			throw new Exception("Exception while creating Filternode from the entity object");
 		}
 		return filterNode;
@@ -230,83 +227,13 @@ public class EntityDAOImpl implements EntityDAO {
 	@Override
 	public List getEntity(Object entityObject) throws Exception {
 		List<?> entityList = null;
-		try{
-			FilterNode filterNode = getFilterNodeFromEntity(entityObject,null);
+		try {
+			FilterNode filterNode = getFilterNodeFromEntity(entityObject,null, null);
 			entityList = getEntity(filterNode);
-		}catch(Exception e){
+		} catch (Exception e) {
 			throw new Exception("Exception while getting entity object");
 		}
 		return entityList;
-	}
-	
-	private Client getClientByIdTestData() throws Exception {
-
-		Address a1 = new Address();
-		a1.setCity("TestCity1");
-
-		Address a2 = new Address();
-		a2.setCity("TestCity2");
-
-		// addressDAO.addAddress(a1);
-
-		Client c = new Client();
-		c.setCompany("VPNThursday");
-		c.setFirstName("VpnTest12");
-		c.setSpnFirmId(101L);
-		c.setExternalClientId("1A");
-		c.setModifiedDate(new Date());
-		c.setCreatedDate(new Date());
-		c.setModifiedBy("VPN");
-
-		ClientDetail clientDetail = new ClientDetail();
-		clientDetail.setGender("M");
-		clientDetail.setClient(c);
-		c.setClientDetail(clientDetail);
-
-		ClientEmploymentRelationship clientEmploymentRelationship = new ClientEmploymentRelationship();
-		clientEmploymentRelationship.setEmployer("Test");
-		clientEmploymentRelationship.setClient(c);
-		clientEmploymentRelationship.setAddress(a1);
-		// clientEmploymentRelationship.setAddressId(a1.getAddressId());
-		c.setClientEmploymentRelationship(clientEmploymentRelationship);
-
-		c.setClientAccountRelationships(new HashSet<ClientAccountRelationship>());
-		ClientAccountRelationship accountRelationship = new ClientAccountRelationship();
-		accountRelationship.setAcctId(47054726L);
-		accountRelationship.setCreatedDate(new Date());
-		accountRelationship.setModifiedDate(new Date());
-		accountRelationship.setModifiedBy("VPN");
-		accountRelationship.setClient(c);
-		c.getClientAccountRelationships().add(accountRelationship);
-
-		c.setClientIaRelationships(new HashSet<ClientIaRelationship>());
-		ClientIaRelationship clientIaRelationship = new ClientIaRelationship();
-		clientIaRelationship.setIaId(71513L);
-		clientIaRelationship.setClient(c);
-		clientIaRelationship.setCreatedDate(new Date());
-		clientIaRelationship.setModifiedBy("VPN");
-		clientIaRelationship.setModifiedDate(new Date());
-		short flag = 1;
-		clientIaRelationship.setPrimaryFlag(new Short(flag));
-		c.getClientIaRelationships().add(clientIaRelationship);
-
-		c.setClientAddressRelationships(new HashSet<ClientAddressRelationship>());
-		ClientAddressRelationship clientAddressRelationship = new ClientAddressRelationship();
-		short addType = 1;
-		clientAddressRelationship.setAddressType(new Short(addType));
-		clientAddressRelationship.setClient(c);
-		clientAddressRelationship.setAddress(a2);
-		c.getClientAddressRelationships().add(clientAddressRelationship);
-
-		c.setclientClientRelationships(new HashSet<ClientClientRelationship>());
-		ClientClientRelationship clientClientRelationship = new ClientClientRelationship();
-		clientClientRelationship.setAcctId(47054726L);
-		clientClientRelationship.setClient(c);
-		clientClientRelationship.setRelatedClient(c);
-		clientClientRelationship.setModifiedDate(new Date());
-		c.getclientClientRelationships().add(clientClientRelationship);
-
-		return c;
 	}
 
 }
