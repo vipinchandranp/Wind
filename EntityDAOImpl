@@ -180,12 +180,7 @@ public class EntityDAOImpl implements EntityDAO {
 				Object value = f.get(entityObject);
 				if (value == null ||(value !=null && value.equals(parentEntityObject))|| f.getType().getName().equalsIgnoreCase("long")) {
 					continue;
-				}else if (f.getType().getName().equalsIgnoreCase("java.lang.String")
-						|| f.getType().getName().equalsIgnoreCase("java.lang.Long")
-						|| f.getType().getName().equalsIgnoreCase("java.util.Date")
-						|| f.getType().getName().equalsIgnoreCase("java.lang.Double")
-						|| f.getType().getName().equalsIgnoreCase("java.lang.Short")
-						|| f.getType().getName().equalsIgnoreCase("java.lang.Integer")) {
+				}else if (getDataTypes().contains(f.getType().getName())) {
 					filterNode.addCondition(f.getName(), Operator.EQUAL, value);
 				} else if (value instanceof Collection<?>) {
 					Field field = metamodelClass.getField(f.getName());
@@ -226,4 +221,15 @@ public class EntityDAOImpl implements EntityDAO {
 		return entityList;
 	}
 
+	private ArrayList<String> getDataTypes(){
+		ArrayList<String> datatypes = new ArrayList<String>();
+		datatypes.add("java.lang.String");
+		datatypes.add("java.lang.Long");
+		datatypes.add("java.util.Date");
+		datatypes.add("java.lang.Double");
+		datatypes.add("java.lang.Short");
+		datatypes.add("java.lang.Integer");
+		datatypes.add("java.lang.Float");
+		return datatypes;
+	}
 }
