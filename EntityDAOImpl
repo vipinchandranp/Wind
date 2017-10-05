@@ -3,8 +3,6 @@ package com.fd.clientmgmt.dao;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -29,14 +27,6 @@ import org.springframework.stereotype.Repository;
 import com.fd.clientmgmt.dao.util.Expression;
 import com.fd.clientmgmt.dao.util.FilterNode;
 import com.fd.clientmgmt.dao.util.Operator;
-import com.fd.clientmgmt.entity.Address;
-import com.fd.clientmgmt.entity.Client;
-import com.fd.clientmgmt.entity.ClientAccountRelationship;
-import com.fd.clientmgmt.entity.ClientAddressRelationship;
-import com.fd.clientmgmt.entity.ClientClientRelationship;
-import com.fd.clientmgmt.entity.ClientDetail; 
-import com.fd.clientmgmt.entity.ClientEmploymentRelationship;
-import com.fd.clientmgmt.entity.ClientIaRelationship;
 
 @Repository
 public class EntityDAOImpl implements EntityDAO {
