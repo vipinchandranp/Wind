@@ -168,12 +168,13 @@ public class EntityDAOImpl implements EntityDAO {
 
 	@SuppressWarnings("rawtypes")
 	public FilterNode getFilterNodeFromEntity(Object entityObject,Object parentEntityObject, FilterNode filterNode) throws Exception {
+		
 		try {
 			if (filterNode == null) {
 				filterNode = new FilterNode(entityObject.getClass(), em);
 			}
-			String metamodelClassName = entityObject.getClass().getCanonicalName() + "_";
-			Class metamodelClass = Class.forName(metamodelClassName);
+			Metamodel metamodel = em.getMetamodel();
+			EntityType entity = metamodel.entity(entityObject.getClass());
 			Field[] declaredFields = entityObject.getClass().getDeclaredFields();
 			for (Field f : declaredFields) {
 				f.setAccessible(true);
@@ -183,22 +184,20 @@ public class EntityDAOImpl implements EntityDAO {
 				}else if (getDataTypes().contains(f.getType().getName())) {
 					filterNode.addCondition(f.getName(), Operator.EQUAL, value);
 				} else if (value instanceof Collection<?>) {
-					Field field = metamodelClass.getField(f.getName());
 					Collection collectionObject = (Collection) f.get(entityObject);
 					Iterator iterator = collectionObject.iterator();
 					while (iterator.hasNext()) {
 						Object obj = iterator.next();
 						if (obj != null) {
 							FilterNode childNode = new FilterNode(obj.getClass(), em);
-							filterNode.addChild((SetAttribute) field.get(null), childNode);
+							filterNode.addChild((SetAttribute) entity.getDeclaredSet(f.getName()), childNode);
 							getFilterNodeFromEntity(obj,entityObject, childNode);
 						}
 					}
 
 				} else if (value instanceof Object) {
-					Field field = metamodelClass.getField(f.getName());
 					FilterNode siblingNode = new FilterNode(value.getClass(), em);
-					filterNode.addSibling((SingularAttribute) field.get(null), siblingNode);
+					filterNode.addSibling((SingularAttribute) entity.getSingularAttribute(f.getName()), siblingNode);
 					getFilterNodeFromEntity(value,entityObject, siblingNode);
 				}
 			}
