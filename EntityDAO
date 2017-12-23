@@ -1,8 +1,6 @@
-package com.fd.clientmgmt.dao;
+package com.nuttron.quasar.dao;
 
 import java.util.List;
-
-import com.fd.clientmgmt.dao.util.FilterNode;
 
 public interface EntityDAO {
 
