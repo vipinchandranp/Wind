@@ -1,4 +1,4 @@
-package com.fd.clientmgmt.dao;
+package com.nuttron.quasar.dao;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -8,7 +8,7 @@ import java.util.List;
 
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import javax.persistence.Persistence;
 import javax.persistence.TransactionRequiredException;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -17,30 +17,21 @@ import javax.persistence.criteria.Fetch;
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+import javax.persistence.metamodel.EntityType;
+import javax.persistence.metamodel.Metamodel;
 import javax.persistence.metamodel.SetAttribute;
 import javax.persistence.metamodel.SingularAttribute;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Repository;
-
-import com.fd.clientmgmt.dao.util.Expression;
-import com.fd.clientmgmt.dao.util.FilterNode;
-import com.fd.clientmgmt.dao.util.Operator;
-
-@Repository
 public class EntityDAOImpl implements EntityDAO {
-
-	Logger logger = LogManager.getLogger(EntityDAOImpl.class);
-
-	@PersistenceContext
-	EntityManager em;
+	
+	EntityManager em = Persistence.createEntityManagerFactory("nuttronJPA").createEntityManager();
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public List<?> getEntity(FilterNode filterNode) throws Exception {
 		List<?> entityList = null;
 		ArrayList<Predicate> predicateList = new ArrayList<>();
+		EntityManager em = Persistence.createEntityManagerFactory("nuttronJPA").createEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
 		CriteriaQuery criteriaQuery = builder.createQuery(filterNode.getEntityClass());
 		criteriaQuery.distinct(true);
@@ -57,25 +48,22 @@ public class EntityDAOImpl implements EntityDAO {
 			TypedQuery<Class<?>> createQuery = em.createQuery(criteriaQuery);
 			entityList = createQuery.getResultList();
 		} catch (EntityExistsException ee) {
-			logger.error("EntityExistsException while creating client" + ee);
 			throw new EntityExistsException(ee.getMessage());
 		} catch (IllegalArgumentException iae) {
-			logger.error("IllegalArgumentException while creating client" + iae);
 			throw new IllegalArgumentException(iae.getMessage());
 		} catch (TransactionRequiredException tre) {
-			logger.error("TransactionRequiredException while creating client" + tre);
 			throw new TransactionRequiredException(tre.getMessage());
 		} catch (Exception e) {
-			logger.error("TransactionRequiredException while creating client" + e.getMessage());
 			throw new Exception(e.getMessage());
 		}
 		return entityList;
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public void filter(CriteriaQuery criteriaQuery, CriteriaBuilder builder, Root parent, Fetch child,
+	public Fetch filter(CriteriaQuery criteriaQuery, CriteriaBuilder builder, Root parent, Fetch child,
 			FilterNode parentNode, FilterNode childNode, List predicateList) throws Exception {
 		try {
+			Fetch tempChild = null;
 			FilterNode currentNode = null;
 			if (childNode == null && parentNode != null) {
 				currentNode = parentNode;
@@ -128,14 +116,17 @@ public class EntityDAOImpl implements EntityDAO {
 				if (child == null) {
 					child = parent.fetch(setAttribute);
 				} else if (parent == null) {
-					child = child.fetch(setAttribute);
+					tempChild = child.fetch(setAttribute);
 				} else if (child != null && parent != null) {
 					child = parent.fetch(setAttribute);
 				}
 				FilterNode node = currentNode.getChildNodeMap().get(setAttribute);
-				filter(criteriaQuery, builder, null, child, currentNode, node, predicateList);
+				if(tempChild != null){
+					filter(criteriaQuery, builder, null, tempChild, currentNode, node, predicateList);
+				}else {
+					filter(criteriaQuery, builder, null, child, currentNode, node, predicateList);
+				}
 			}
-
 			for (SingularAttribute singularAttribute : currentNode.getSiblingFields()) {
 				if (singularAttribute == null) {
 					continue;
@@ -143,32 +134,31 @@ public class EntityDAOImpl implements EntityDAO {
 				if (child == null) {
 					child = parent.fetch(singularAttribute);
 				} else if (parent == null) {
-					child = child.fetch(singularAttribute);
+					tempChild = child.fetch(singularAttribute);
 				} else if (child != null && parent != null) {
 					child = parent.fetch(singularAttribute);
 				}
 				FilterNode node = currentNode.getChildNodeMap().get(singularAttribute);
-				filter(criteriaQuery, builder, null, child, currentNode, node, predicateList);
+				if(tempChild != null){
+					filter(criteriaQuery, builder, null, tempChild, currentNode, node, predicateList);
+				}else {
+					filter(criteriaQuery, builder, null, child, currentNode, node, predicateList);
+				}
 			}
-
+			return child;
 		} catch (EntityExistsException ee) {
-			logger.error("EntityExistsException while entity filter");
 			throw new EntityExistsException(ee.getMessage());
 		} catch (IllegalArgumentException iae) {
-			logger.error("IllegalArgumentException while entity filter" + iae);
 			throw new IllegalArgumentException(iae.getMessage());
 		} catch (TransactionRequiredException tre) {
-			logger.error("TransactionRequiredException while entity filter" + tre);
 			throw new TransactionRequiredException(tre.getMessage());
 		} catch (Exception e) {
-			logger.error("TransactionRequiredException while entity filter" + e.getMessage());
 			throw new Exception(e.getMessage());
 		}
 	}
 
 	@SuppressWarnings("rawtypes")
 	public FilterNode getFilterNodeFromEntity(Object entityObject,Object parentEntityObject, FilterNode filterNode) throws Exception {
-		
 		try {
 			if (filterNode == null) {
 				filterNode = new FilterNode(entityObject.getClass(), em);
